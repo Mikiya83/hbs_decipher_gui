@@ -3,6 +3,7 @@ package qnapdecryptgui;
 import java.awt.Font;
 import java.awt.Toolkit;
 import java.security.NoSuchAlgorithmException;
+import java.security.Security;
 import java.util.Set;
 
 import javax.crypto.Cipher;
@@ -57,9 +58,25 @@ public class QnapdecryptGui {
 			}
 		}
 
+		// Check property after update 151
+		boolean jceApplied = false;
+		try {
+			// try the property after update 151
+			Security.setProperty("crypto.policy", "unlimited");
+			if (Cipher.getMaxAllowedKeyLength("AES") >= AES_KEY_STRENGTH) {
+				// Update applied so property can be set !
+				jceApplied = true;
+			}
+		} catch (SecurityException exc) {
+			// Cannot write permission, do not crash on it it can be normal,
+			// try to override JCE file next
+		} catch (NoSuchAlgorithmException exc2) {
+			CreateDialogErrorAndExit("AES not available in this JRE.");
+		}
+
 		// Check JCE
 		try {
-			if (Cipher.getMaxAllowedKeyLength("AES") < AES_KEY_STRENGTH) {
+			if (Cipher.getMaxAllowedKeyLength("AES") < AES_KEY_STRENGTH && !jceApplied) {
 				String linkJCE = "Link not found for JCE policy";
 				if (System.getProperty("java.version").startsWith(JAVA_7_VERSION)) {
 					linkJCE = JAVA_7_JCE;
