@@ -107,8 +107,8 @@ public class QnapdecryptPresentationModel {
 
 				// Check recursive mode
 				if (recursiveMode && eachCipherFile.isDirectory() && eachCipherFile.canRead()) {
-					String newPlainDir = plainDir + File.separator + eachCipheredFileName;
-					String newCipherDir = cipherDir + File.separator + eachPlainFileName;
+					String newPlainDir = plainDir + File.separator + eachPlainFileName;
+					String newCipherDir = cipherDir + File.separator + eachCipheredFileName;
 					try {
 						if (!Files.isDirectory(Paths.get(newPlainDir))) {
 							Files.createDirectory(Paths.get(newPlainDir));
