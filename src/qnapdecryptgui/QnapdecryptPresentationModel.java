@@ -6,6 +6,8 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.HierarchyEvent;
 import java.awt.event.HierarchyListener;
+import java.awt.event.ItemEvent;
+import java.awt.event.ItemListener;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.beans.PropertyChangeEvent;
@@ -39,7 +41,101 @@ import qnapdecrypt.QNAPFileDecrypterEngine;
 
 public class QnapdecryptPresentationModel {
 
-	private static final String NAME_FILE_REPORT = "HBSUtility_report.txt";
+	private class DecipherSwingWorker extends SwingWorker<Boolean, Void> {
+		int index = 0;
+		private CountDownLatch countdown;
+		private boolean dirMode;
+		private String password;
+		private boolean recursiveMode;
+
+		private JDialog waitDialog;
+
+		public DecipherSwingWorker(CountDownLatch countdown, JDialog waitDialog, boolean dirMode, boolean recursiveMode,
+				String password) {
+			this.countdown = countdown;
+			this.password = password;
+			this.dirMode = dirMode;
+			this.recursiveMode = recursiveMode;
+			this.waitDialog = waitDialog;
+		}
+
+		@Override
+		public Boolean doInBackground() {
+			if (dirMode) {
+				decipherMultipleFiles(srcFile, dstFile);
+			} else {
+				if (srcFile.canRead() && !srcFile.isDirectory()) {
+					File outputFile = dstFile;
+					if (dstFile.isDirectory()) {
+						if (srcFile.getParentFile().equals(dstFile)) {
+							outputFile = new File(dstFile + File.separator + PLAIN_NAME_PREFIX + srcFile.getName());
+						} else {
+							outputFile = new File(dstFile + File.separator + srcFile.getName());
+						}
+					} else if (srcFile.equals(dstFile)) {
+						outputFile = new File(
+								dstFile.getParent() + File.separator + PLAIN_NAME_PREFIX + srcFile.getName());
+					}
+					if (cipherEngine.doDecipherFile(srcFile, outputFile, password)) {
+						successFiles.add(srcFile);
+					} else {
+						errorFiles.add(srcFile);
+					}
+				}
+			}
+			return true;
+		}
+
+		@Override
+		public void done() {
+			waitDialog.dispose();
+			countdown.countDown();
+		}
+
+		private void decipherMultipleFiles(File cipherFile, File plainFile) {
+			File cipherDir = cipherFile;
+			File plainDir = plainFile;
+			String[] cipheredListFiles = cipherDir.list();
+
+			for (String eachCipheredFileName : cipheredListFiles) {
+				String eachPlainFileName = eachCipheredFileName;
+				if (cipherDir.equals(plainDir)) {
+					eachPlainFileName = PLAIN_NAME_PREFIX + eachCipheredFileName;
+				}
+				File eachCipherFile = new File(cipherDir + File.separator + eachCipheredFileName);
+				File eachPlainFile = new File(plainDir + File.separator + eachPlainFileName);
+
+				// Check recursive mode
+				if (recursiveMode && eachCipherFile.isDirectory() && eachCipherFile.canRead()) {
+					String newPlainDir = plainDir + File.separator + eachCipheredFileName;
+					String newCipherDir = cipherDir + File.separator + eachPlainFileName;
+					try {
+						if (!Files.isDirectory(Paths.get(newPlainDir))) {
+							Files.createDirectory(Paths.get(newPlainDir));
+						}
+						decipherMultipleFiles(new File(newCipherDir), new File(newPlainDir));
+					} catch (IOException e) {
+						errorFiles.add(eachCipherFile);
+					}
+				} else {
+					if (!eachCipherFile.isDirectory() && eachCipherFile.canRead()) {
+						if (cipherEngine.doDecipherFile(eachCipherFile, eachPlainFile, password)) {
+							successFiles.add(eachCipherFile);
+						} else {
+							errorFiles.add(eachCipherFile);
+						}
+					}
+				}
+
+				// Cannot set progress in recursive mode, cannot predict how many files are
+				// deciphered
+				if (!recursiveMode) {
+					int progress = (int) (((float) ++index / cipheredListFiles.length) * 100);
+					setProgress(progress);
+				}
+			}
+		}
+	}
 
 	private class RequestFocusListener implements AncestorListener {
 
@@ -70,6 +166,8 @@ public class QnapdecryptPresentationModel {
 
 	private static final int MAX_PWD_LENGTH = 64;
 
+	private static final String NAME_FILE_REPORT = "HBSUtility_report.txt";
+
 	private static final String PLAIN_NAME_PREFIX = "plain_";
 
 	QNAPFileDecrypterEngine cipherEngine;
@@ -83,6 +181,10 @@ public class QnapdecryptPresentationModel {
 	private List<File> errorFiles = new ArrayList<>();
 
 	private QnapdecryptPanel panel;
+
+	private ItemListener recursiveListener;
+
+	private boolean recursiveMode = false;
 
 	private ActionListener sourceActionListener;
 
@@ -105,7 +207,7 @@ public class QnapdecryptPresentationModel {
 						if (srcFile.isDirectory()) {
 							if (dstFile.isDirectory()) {
 								cipherEngine.setDirMode(true);
-								askPasswordAndDecipher(true);
+								askPasswordAndDecipher(true, recursiveMode);
 							} else {
 								JOptionPane.showMessageDialog(new JFrame(),
 										"Cannot decipher a directory in a single file, use a directory as destination when the source is a directory.",
@@ -113,7 +215,7 @@ public class QnapdecryptPresentationModel {
 							}
 						} else {
 							cipherEngine.setDirMode(false);
-							askPasswordAndDecipher(false);
+							askPasswordAndDecipher(false, false);
 						}
 					} else {
 						JOptionPane.showMessageDialog(new JFrame(), "I/O Error, cannot read source or destination.",
@@ -151,6 +253,19 @@ public class QnapdecryptPresentationModel {
 			};
 		}
 		return destinationActionListener;
+	}
+
+	public ItemListener getRecursiveModeItemListener() {
+		if (recursiveListener == null) {
+			recursiveListener = new ItemListener() {
+
+				@Override
+				public void itemStateChanged(ItemEvent e) {
+					recursiveMode = (e.getStateChange() == ItemEvent.SELECTED);
+				}
+			};
+		}
+		return recursiveListener;
 	}
 
 	public ActionListener getSourceActionListener() {
@@ -192,80 +307,10 @@ public class QnapdecryptPresentationModel {
 		}
 	}
 
-	private class DecipherSwingWorker extends SwingWorker<Boolean, Void> {
-		private CountDownLatch countdown;
-		private boolean dirMode;
-		private String password;
-		private JDialog waitDialog;
-
-		public DecipherSwingWorker(CountDownLatch countdown, JDialog waitDialog, boolean dirMode, String password) {
-			this.countdown = countdown;
-			this.password = password;
-			this.dirMode = dirMode;
-			this.waitDialog = waitDialog;
-		}
-
-		int index = 0;
-
-		@Override
-		public Boolean doInBackground() {
-			if (dirMode) {
-				String[] cipheredListFiles = srcFile.list();
-				for (String eachCipheredFileName : cipheredListFiles) {
-					String eachPlainFileName = eachCipheredFileName;
-					if (srcFile.equals(dstFile)) {
-						eachPlainFileName = PLAIN_NAME_PREFIX + eachCipheredFileName;
-					}
-					File eachCipherFile = new File(srcFile + File.separator + eachCipheredFileName);
-					File eachPlainFile = new File(dstFile + File.separator + eachPlainFileName);
-					if (!eachCipherFile.isDirectory()) {
-						if (eachCipherFile.canRead()) {
-							if (cipherEngine.doDecipherFile(eachCipherFile, eachPlainFile, password)) {
-								successFiles.add(eachCipherFile);
-							} else {
-								errorFiles.add(eachCipherFile);
-							}
-						} else {
-							errorFiles.add(eachCipherFile);
-						}
-					}
-					int progress = (int) (((float) ++index / cipheredListFiles.length) * 100);
-					setProgress(progress);
-				}
-			} else {
-				if (srcFile.canRead() && !srcFile.isDirectory()) {
-					File outputFile = dstFile;
-					if (dstFile.isDirectory()) {
-						if (srcFile.getParentFile().equals(dstFile)) {
-							outputFile = new File(dstFile + File.separator + PLAIN_NAME_PREFIX + srcFile.getName());
-						} else {
-							outputFile = new File(dstFile + File.separator + srcFile.getName());
-						}
-					} else if (srcFile.equals(dstFile)) {
-						outputFile = new File(
-								dstFile.getParent() + File.separator + PLAIN_NAME_PREFIX + srcFile.getName());
-					}
-					if (cipherEngine.doDecipherFile(srcFile, outputFile, password)) {
-						successFiles.add(srcFile);
-					} else {
-						errorFiles.add(srcFile);
-					}
-				}
-			}
-			return true;
-		}
-
-		@Override
-		public void done() {
-			waitDialog.dispose();
-			countdown.countDown();
-		}
-	}
-
 	/**
 	 * Ask user password and decipher.
 	 */
-	private void askPasswordAndDecipher(boolean dirMode) {
+	private void askPasswordAndDecipher(boolean dirMode, boolean recursiveMode) {
 		errorFiles.clear();
 		successFiles.clear();
 		// Ask user for password
@@ -296,7 +341,8 @@ public class QnapdecryptPresentationModel {
 					JOptionPane.DEFAULT_OPTION, null, new Object[] {}, null);
 			JDialog waitDialog = waitOptionPane.createDialog(panel, "Patience ...");
 
-			final DecipherSwingWorker worker = new DecipherSwingWorker(waitDecipher, waitDialog, dirMode, password);
+			final DecipherSwingWorker worker = new DecipherSwingWorker(waitDecipher, waitDialog, dirMode, recursiveMode,
+					password);
 			worker.execute();
 
 			if (bar != null) {
@@ -341,36 +387,6 @@ public class QnapdecryptPresentationModel {
 			}
 
 			writeReportFile();
-		}
-	}
-
-	private void writeReportFile() {
-		// Write errors in file
-		Path resFile;
-		if (dstFile.isDirectory()) {
-			resFile = Paths.get(dstFile.getAbsolutePath() + File.separator + NAME_FILE_REPORT);
-		} else {
-			resFile = Paths.get(dstFile.getParentFile().getAbsolutePath() + File.separator + NAME_FILE_REPORT);
-		}
-
-		StringBuilder builder = new StringBuilder();
-		builder.append("Files in success for decipher operations in Hybrid Backup Sync utility :"
-				+ System.lineSeparator() + System.lineSeparator());
-		for (File eachSuccessPath : successFiles) {
-			builder.append(eachSuccessPath.getAbsolutePath() + System.lineSeparator());
-		}
-		builder.append(System.lineSeparator() + "----------------" + System.lineSeparator() + System.lineSeparator());
-		builder.append("Files in error for decipher operations in Hybrid Backup Sync utility :" + System.lineSeparator()
-				+ System.lineSeparator());
-		for (File eachErrorPath : errorFiles) {
-			builder.append(eachErrorPath.getAbsolutePath() + System.lineSeparator());
-		}
-
-		byte[] buf = builder.toString().getBytes();
-		try {
-			Files.write(resFile, buf);
-		} catch (IOException e) {
-			e.printStackTrace();
 		}
 	}
 
@@ -428,5 +444,35 @@ public class QnapdecryptPresentationModel {
 		dialog.setVisible(true);
 
 		return passDialog;
+	}
+
+	private void writeReportFile() {
+		// Write errors in file
+		Path resFile;
+		if (dstFile.isDirectory()) {
+			resFile = Paths.get(dstFile.getAbsolutePath() + File.separator + NAME_FILE_REPORT);
+		} else {
+			resFile = Paths.get(dstFile.getParentFile().getAbsolutePath() + File.separator + NAME_FILE_REPORT);
+		}
+
+		StringBuilder builder = new StringBuilder();
+		builder.append("Files in success for decipher operations in Hybrid Backup Sync utility :"
+				+ System.lineSeparator() + System.lineSeparator());
+		for (File eachSuccessPath : successFiles) {
+			builder.append(eachSuccessPath.getAbsolutePath() + System.lineSeparator());
+		}
+		builder.append(System.lineSeparator() + "----------------" + System.lineSeparator() + System.lineSeparator());
+		builder.append("Files in error for decipher operations in Hybrid Backup Sync utility :" + System.lineSeparator()
+				+ System.lineSeparator());
+		for (File eachErrorPath : errorFiles) {
+			builder.append(eachErrorPath.getAbsolutePath() + System.lineSeparator());
+		}
+
+		byte[] buf = builder.toString().getBytes();
+		try {
+			Files.write(resFile, buf);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 	}
 }

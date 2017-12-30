@@ -11,6 +11,7 @@ import javax.swing.Box;
 import javax.swing.BoxLayout;
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
+import javax.swing.JCheckBox;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JTextField;
@@ -39,6 +40,8 @@ public class QnapdecryptPanel extends JPanel {
 
 	private JLabel sourceLabel;
 
+	private JCheckBox recursive;
+
 	public QnapdecryptPanel(QnapdecryptPresentationModel presentationModel) {
 		Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
 		int width = (int) (screenSize.getWidth() / 2);
@@ -51,6 +54,8 @@ public class QnapdecryptPanel extends JPanel {
 		this.destLabel = new JLabel("Destination : ");
 		this.sourceChoosen = new JTextField();
 		sourceChoosen.setEditable(false);
+		this.recursive = new JCheckBox("Recursive mode (if directory selected)");
+
 		this.destChoosen = new JTextField();
 		destChoosen.setEditable(false);
 
@@ -62,6 +67,7 @@ public class QnapdecryptPanel extends JPanel {
 		decipherButton.addActionListener(presentationModel.getDecipherActionListener());
 		sourceButton.addActionListener(presentationModel.getSourceActionListener());
 		destButton.addActionListener(presentationModel.getDestinationActionListener());
+		recursive.addItemListener(presentationModel.getRecursiveModeItemListener());
 
 		this.setLayout(new BoxLayout(this, BoxLayout.PAGE_AXIS));
 
@@ -75,9 +81,10 @@ public class QnapdecryptPanel extends JPanel {
 		this.add(titlePanel);
 
 		JPanel srcPanel = new JPanel();
-		srcPanel.setLayout(new GridLayout(3, 2, 4, 0));
+		srcPanel.setLayout(new GridLayout(4, 2, 4, 0));
 		srcPanel.add(sourceLabel);
 		srcPanel.add(sourceChoosen);
+		srcPanel.add(recursive);
 
 		this.add(srcPanel);
 
