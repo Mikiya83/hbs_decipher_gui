@@ -21,7 +21,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
 
 import javax.swing.JComponent;
 import javax.swing.JDialog;
@@ -339,7 +338,13 @@ public class QnapdecryptPresentationModel {
 
 			final JOptionPane waitOptionPane = new JOptionPane(waitPanel, JOptionPane.INFORMATION_MESSAGE,
 					JOptionPane.DEFAULT_OPTION, null, new Object[] {}, null);
-			JDialog waitDialog = waitOptionPane.createDialog(panel, "Patience ...");
+			JDialog waitDialog;
+			if (!recursiveMode) {
+				waitDialog = waitOptionPane.createDialog(panel, "Patience ...");
+			} else {
+				waitDialog = waitOptionPane.createDialog(panel,
+						"Patience, in recursive mode, progress cannot be measured ...");
+			}
 
 			final DecipherSwingWorker worker = new DecipherSwingWorker(waitDecipher, waitDialog, dirMode, recursiveMode,
 					password);
@@ -360,7 +365,9 @@ public class QnapdecryptPresentationModel {
 			waitDialog.setVisible(true);
 
 			try {
-				waitDecipher.await(60, TimeUnit.SECONDS);
+				// Do not set time limit, we cannot predict decipher time (depend on files
+				// number and size)
+				waitDecipher.await();
 			} catch (InterruptedException e) {
 				e.printStackTrace();
 			}
