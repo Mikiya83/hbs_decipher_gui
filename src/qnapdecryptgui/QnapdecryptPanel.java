@@ -72,7 +72,7 @@ public class QnapdecryptPanel extends JPanel {
 		this.setLayout(new BoxLayout(this, BoxLayout.PAGE_AXIS));
 
 		JPanel titlePanel = new JPanel();
-		JLabel title = new JLabel("Hybric Backup Sync decipher utility - Unofficial tool made by Mikiya");
+		JLabel title = new JLabel("Hybrid Backup Sync decipher utility - Unofficial tool made by Mikiya");
 		title.setHorizontalAlignment(SwingConstants.CENTER);
 		titlePanel.add(new JLabel(createImageIcon(IMAGES_PADLOCK_JPG)));
 		titlePanel.add(title, BorderLayout.CENTER);
