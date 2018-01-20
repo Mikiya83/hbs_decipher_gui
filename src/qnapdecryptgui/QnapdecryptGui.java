@@ -2,6 +2,8 @@ package qnapdecryptgui;
 
 import java.awt.Font;
 import java.awt.Toolkit;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.security.NoSuchAlgorithmException;
 import java.security.Security;
 import java.util.Set;
@@ -29,12 +31,22 @@ public class QnapdecryptGui {
 
 	private static final String JAVA_8_VERSION = "1.8";
 
+	private static final String RESIZABLE_OPTION = "r";
+
+	private static final String RESIZE_NAME_FILE = "resizeEnable";
+
 	public static void CreateDialogErrorAndExit(final String error) {
 		JOptionPane.showMessageDialog(new JFrame(), error, "Utility error", JOptionPane.ERROR_MESSAGE);
 		System.exit(1);
 	}
 
 	public static void main(String[] args) {
+		boolean resizable = false;
+		if ((args != null && args.length > 0 && args[0].equals(RESIZABLE_OPTION))
+				|| (Files.exists(Paths.get("./" + RESIZE_NAME_FILE)))) {
+			resizable = true;
+		}
+
 		try {
 			UIManager.setLookAndFeel("javax.swing.plaf.nimbus.NimbusLookAndFeel");
 		} catch (ClassNotFoundException | InstantiationException | IllegalAccessException
@@ -101,7 +113,7 @@ public class QnapdecryptGui {
 
 		JFrame qnapChooser = new JFrame("Decipher Hybrid Backup Sync utility");
 		qnapChooser.add(panel);
-		qnapChooser.setResizable(false);
+		qnapChooser.setResizable(resizable);
 		qnapChooser.pack();
 		qnapChooser.setLocationRelativeTo(null);
 		qnapChooser.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
