@@ -33,6 +33,8 @@ public class QnapdecryptGui {
 
 	private static final String RESIZABLE_OPTION = "r";
 
+	private static final String VERBOSE_OPTION = "v";
+
 	private static final String RESIZE_NAME_FILE = "resizeEnable";
 
 	public static void CreateDialogErrorAndExit(final String error) {
@@ -42,8 +44,19 @@ public class QnapdecryptGui {
 
 	public static void main(String[] args) {
 		boolean resizable = false;
-		if ((args != null && args.length > 0 && args[0].equals(RESIZABLE_OPTION))
-				|| (Files.exists(Paths.get("./" + RESIZE_NAME_FILE)))) {
+		boolean verbose = false;
+
+		if (args != null && args.length > 0) {
+			for (String opt : args) {
+				if (opt.equals(RESIZABLE_OPTION)) {
+					resizable = true;
+				} else if (opt.equals(VERBOSE_OPTION)) {
+					System.out.println("Enable verbose mode");
+					verbose = true;
+				}
+			}
+		}
+		if (!resizable && (Files.exists(Paths.get("./" + RESIZE_NAME_FILE)))) {
 			resizable = true;
 		}
 
@@ -105,7 +118,7 @@ public class QnapdecryptGui {
 			CreateDialogErrorAndExit("AES not available in this JRE.");
 		}
 
-		QNAPFileDecrypterEngine engine = new QNAPFileDecrypterEngine(false, false);
+		QNAPFileDecrypterEngine engine = new QNAPFileDecrypterEngine(verbose, false);
 
 		QnapdecryptPresentationModel presentationModel = new QnapdecryptPresentationModel(engine);
 		QnapdecryptPanel panel = new QnapdecryptPanel(presentationModel);
