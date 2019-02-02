@@ -1,9 +1,16 @@
 package qnapdecryptgui;
 
 import java.awt.BorderLayout;
+import java.awt.Cursor;
+import java.awt.Desktop;
 import java.awt.Dimension;
 import java.awt.GridLayout;
 import java.awt.Toolkit;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+import java.io.IOException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.net.URL;
 
 import javax.swing.BorderFactory;
@@ -19,7 +26,9 @@ import javax.swing.SwingConstants;
 
 public class QnapdecryptPanel extends JPanel {
 
-	private static final String IMAGES_PADLOCK_JPG = "images/padlock.jpg";
+	private static final String IMAGES_PADLOCK_JPG = "images/padlock.png";
+
+	private static final String IMAGE_GITHUB = "images/github.png";
 
 	/**
 	 * Default id
@@ -42,6 +51,20 @@ public class QnapdecryptPanel extends JPanel {
 
 	private JCheckBox recursive;
 
+	URI uri;
+
+	private static void open(URI uri) {
+		if (Desktop.isDesktopSupported()) {
+			try {
+				Desktop.getDesktop().browse(uri);
+			} catch (IOException exc) {
+				System.err.println("Couldn't open link to Github: " + exc.getMessage());
+			}
+		} else {
+			System.err.println("Couldn't open link to Github, browser not supported.");
+		}
+	}
+
 	public QnapdecryptPanel(QnapdecryptPresentationModel presentationModel) {
 		Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
 		int width = (int) (screenSize.getWidth() / 2);
@@ -50,14 +73,29 @@ public class QnapdecryptPanel extends JPanel {
 		this.setPreferredSize(new Dimension(width, height));
 		this.setBorder(BorderFactory.createEmptyBorder(0, 10, 10, 10));
 
+		MouseAdapter mouseClick = new MouseAdapter() {
+			@Override
+			public void mouseClicked(MouseEvent evt) {
+				if (evt.getSource().equals(sourceChoosen)) {
+					sourceButton.doClick();
+				} else if (evt.getSource().equals(destChoosen)) {
+					destButton.doClick();
+				}
+			}
+		};
+
 		this.sourceLabel = new JLabel("Source : ");
 		this.destLabel = new JLabel("Destination : ");
 		this.sourceChoosen = new JTextField();
 		sourceChoosen.setEditable(false);
-		this.recursive = new JCheckBox("Recursive mode (if directory selected)");
+		sourceChoosen.addMouseListener(mouseClick);
+		this.recursive = new JCheckBox("Recursive mode (only if directory selected)");
+		recursive.setToolTipText(
+				"<HTML>Search files in sub-directories too. <b>Used it with caution</b>, it can take a lot of time and resources.</HTML>");
 
 		this.destChoosen = new JTextField();
 		destChoosen.setEditable(false);
+		destChoosen.addMouseListener(mouseClick);
 
 		this.sourceButton = new JButton("Source file/directory");
 		this.destButton = new JButton("Destination file/directory");
@@ -72,11 +110,26 @@ public class QnapdecryptPanel extends JPanel {
 		this.setLayout(new BoxLayout(this, BoxLayout.PAGE_AXIS));
 
 		JPanel titlePanel = new JPanel();
-		JLabel title = new JLabel("Hybrid Backup Sync decipher utility - Unofficial tool made by Mikiya");
+		JLabel title = new JLabel(
+				"<HTML><b>Hybrid Backup Sync decipher utility</b> - Unofficial tool made by Mikiya -<HTML>");
 		title.setHorizontalAlignment(SwingConstants.CENTER);
 		titlePanel.add(new JLabel(createImageIcon(IMAGES_PADLOCK_JPG)));
 		titlePanel.add(title, BorderLayout.CENTER);
-		titlePanel.add(new JLabel(createImageIcon(IMAGES_PADLOCK_JPG)));
+
+		try {
+			uri = new URI("https://github.com/Mikiya83/hbs_decipher");
+			JButton button = new JButton(createImageIcon(IMAGE_GITHUB));
+			button.setContentAreaFilled(false);
+			button.setBorder(BorderFactory.createEmptyBorder());
+			button.setToolTipText("Check my GitHub repository for more informations");
+			button.setCursor(new Cursor(Cursor.HAND_CURSOR));
+			button.addActionListener(action -> {
+				open(uri);
+			});
+			titlePanel.add(button);
+		} catch (URISyntaxException e) {
+			System.err.println("Couldn't create link to Github: " + e.getMessage());
+		}
 
 		this.add(titlePanel);
 

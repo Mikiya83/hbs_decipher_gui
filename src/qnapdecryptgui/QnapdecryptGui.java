@@ -19,13 +19,11 @@ import qnapdecrypt.QNAPFileDecrypterEngine;
 
 public class QnapdecryptGui {
 
+	private static final String IMAGES_ICON = "images/padlock.png";
+
 	private static final int AES_KEY_STRENGTH = 256;
 
 	private static final int DPI_DEFAULT = 96;
-
-	private static final String JAVA_7_JCE = "http://www.oracle.com/technetwork/java/javase/downloads/jce-7-download-432124.html";
-
-	private static final String JAVA_7_VERSION = "1.7";
 
 	private static final String JAVA_8_JCE = "http://www.oracle.com/technetwork/java/javase/downloads/jce8-download-2133166.html";
 
@@ -103,9 +101,7 @@ public class QnapdecryptGui {
 		try {
 			if (Cipher.getMaxAllowedKeyLength("AES") < AES_KEY_STRENGTH && !jceApplied) {
 				String linkJCE = "Link not found for JCE policy";
-				if (System.getProperty("java.version").startsWith(JAVA_7_VERSION)) {
-					linkJCE = JAVA_7_JCE;
-				} else if (System.getProperty("java.version").startsWith(JAVA_8_VERSION)) {
+				if (System.getProperty("java.version").startsWith(JAVA_8_VERSION)) {
 					linkJCE = JAVA_8_JCE;
 				} else {
 					CreateDialogErrorAndExit("JAVA version not supported, install JCE policy on JRE 7 / 8.");
@@ -131,7 +127,7 @@ public class QnapdecryptGui {
 		qnapChooser.setLocationRelativeTo(null);
 		qnapChooser.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
 		qnapChooser.setVisible(true);
-
+		qnapChooser.setIconImage(Toolkit.getDefaultToolkit().getImage(QnapdecryptGui.class.getResource(IMAGES_ICON)));
 	}
 
 	public static void setDefaultSize(int size) {
