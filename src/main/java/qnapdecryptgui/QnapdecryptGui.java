@@ -127,7 +127,8 @@ public class QnapdecryptGui {
 		qnapChooser.setLocationRelativeTo(null);
 		qnapChooser.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
 		qnapChooser.setVisible(true);
-		qnapChooser.setIconImage(Toolkit.getDefaultToolkit().getImage(QnapdecryptGui.class.getResource(IMAGES_ICON)));
+		qnapChooser.setIconImage(Toolkit.getDefaultToolkit()
+				.getImage(Thread.currentThread().getContextClassLoader().getResource(IMAGES_ICON)));
 	}
 
 	public static void setDefaultSize(int size) {

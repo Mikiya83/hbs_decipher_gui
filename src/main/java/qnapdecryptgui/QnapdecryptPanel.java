@@ -174,9 +174,9 @@ public class QnapdecryptPanel extends JPanel {
 
 	/** Returns an ImageIcon, or null if the path was invalid. */
 	private ImageIcon createImageIcon(String path) {
-		URL imgURL = getClass().getResource(path);
+		final URL imgURL = Thread.currentThread().getContextClassLoader().getResource(path);
 		if (imgURL != null) {
-			return new ImageIcon(imgURL, "");
+			return new ImageIcon(Toolkit.getDefaultToolkit().getImage(imgURL), "");
 		} else {
 			System.err.println("Couldn't find file: " + path);
 			return null;
