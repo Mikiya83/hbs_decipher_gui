@@ -7,7 +7,7 @@
 	
 	<groupId>io.github.mikiya83</groupId>
 	<artifactId>hbs_decipher_gui</artifactId>
-	<version>1.5</version>
+	<version>1.5.1</version>
 	<packaging>jar</packaging>
 	
 	<name>HBS Decipher tool GUI</name>
