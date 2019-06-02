@@ -67,13 +67,23 @@ public class QnapdecryptPresentationModel {
 					File outputFile = dstFile;
 					if (dstFile.isDirectory()) {
 						if (srcFile.getParentFile().equals(dstFile)) {
-							outputFile = new File(dstFile + File.separator + PLAIN_NAME_PREFIX + srcFile.getName());
+							if (srcFile.getName().endsWith(QNAPFileDecrypterEngine.QNAP_BZ2_EXTENSION)) {
+								outputFile = new File(dstFile + File.separator + PLAIN_NAME_PREFIX
+										+ srcFile.getName().replaceAll(QNAPFileDecrypterEngine.QNAP_BZ2_EXTENSION, ""));
+							} else {
+								outputFile = new File(dstFile + File.separator + PLAIN_NAME_PREFIX + srcFile.getName());
+							}
 						} else {
 							outputFile = new File(dstFile + File.separator + srcFile.getName());
 						}
 					} else if (srcFile.equals(dstFile)) {
-						outputFile = new File(
-								dstFile.getParent() + File.separator + PLAIN_NAME_PREFIX + srcFile.getName());
+						if (srcFile.getName().endsWith(QNAPFileDecrypterEngine.QNAP_BZ2_EXTENSION)) {
+							outputFile = new File(dstFile.getParent() + File.separator + PLAIN_NAME_PREFIX
+									+ srcFile.getName().replaceAll(QNAPFileDecrypterEngine.QNAP_BZ2_EXTENSION, ""));
+						} else {
+							outputFile = new File(
+									dstFile.getParent() + File.separator + PLAIN_NAME_PREFIX + srcFile.getName());
+						}
 					}
 					if (cipherEngine.doDecipherFile(srcFile, outputFile, password)) {
 						successFiles.add(srcFile);
@@ -99,7 +109,12 @@ public class QnapdecryptPresentationModel {
 			for (String eachCipheredFileName : cipheredListFiles) {
 				String eachPlainFileName = eachCipheredFileName;
 				if (cipherDir.equals(plainDir)) {
-					eachPlainFileName = PLAIN_NAME_PREFIX + eachCipheredFileName;
+					if (eachCipheredFileName.endsWith(QNAPFileDecrypterEngine.QNAP_BZ2_EXTENSION)) {
+						eachPlainFileName = PLAIN_NAME_PREFIX
+								+ eachCipheredFileName.replaceAll(QNAPFileDecrypterEngine.QNAP_BZ2_EXTENSION, "");
+					} else {
+						eachPlainFileName = PLAIN_NAME_PREFIX + eachCipheredFileName;
+					}
 				}
 				File eachCipherFile = new File(cipherDir + File.separator + eachCipheredFileName);
 				File eachPlainFile = new File(plainDir + File.separator + eachPlainFileName);
